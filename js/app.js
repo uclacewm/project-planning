@@ -122,7 +122,7 @@ function rangeControls() {
   const fy = today().getMonth() >= 6 ? y : y - 1;
   const ranges = [['cal-this', `Calendar ${y}`], ['cal-next', `Calendar ${y + 1}`], ['fiscal', `Fiscal ${fy}–${String(fy + 1).slice(2)} (Jul–Jun)`], ['fiscal-next', `Fiscal ${fy + 1}–${String(fy + 2).slice(2)}`]];
   return `<div class="row-gap"><div class="seg" role="group" aria-label="Year">${ranges.map(([v, l]) => `<button type="button" aria-pressed="${ui.range === v}" data-set="range:${v}">${l}</button>`).join('')}</div>
-    ${ui.tab === 'timeline' ? `<label for="leadf" class="muted">Lead</label><select id="leadf" data-set-select="lead"><option value="">Everyone</option>${peopleNames().map((p) => `<option${ui.lead === p ? ' selected' : ''}>${esc(p)}</option>`).join('')}</select>` : ''}</div>`;
+    ${ui.tab === 'timeline' ? `<label for="leadf" class="muted">Lead</label><select id="leadf" data-set-select="lead"><option value="">All faculty</option>${peopleNames('Faculty').map((p) => `<option${ui.lead === p ? ' selected' : ''}>${esc(p)}</option>`).join('')}</select>` : ''}</div>`;
 }
 
 onChange(render);

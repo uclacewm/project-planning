@@ -82,74 +82,157 @@ function dateItem(i) {
 }
 
 // ---------------- Timeline ----------------
-export function timelineView() {
-  const start = rangeStart(ui.range);
-  const end = addDays(addMonths(start, 12), -1);
-  const lead = ui.lead.toLowerCase();
+// Clean Gantt layout: fixed row height so connector lines can be drawn between rows.
+const ROW = 56, BAR_Y = 10, BAR_H = 26, LANE_Y = 46;
+const groupFolded = (cat) => (cat === 'standing') !== ui.flipped.has(`group:${cat}`);
+
+function tlHeader(start) {
+  const months = Array.from({ length: 12 }, (_, i) => addMonths(start, i));
+  const tp = monthPos(start, today());
+  const chip = tp >= 0 && tp <= 12 ? `<span class="today-chip" style="left:${pct(tp)}">${esc(fmtDate(today()))}</span>` : '';
+  return `<div class="tl-head"><div class="tl-name-col">Project</div><div class="tl-months">${months.map((m, i) => `<div>${MONTH_SHORT[m.getMonth()]}${m.getMonth() === 0 || i === 0 ? ` <span class="yr">${m.getFullYear()}</span>` : ''}</div>`).join('')}${chip}</div></div>`;
+}
+
+function span(start, ph) {
+  const s = Math.max(0, monthPos(start, parseDate(ph.start_date)));
+  const e = Math.min(12, monthPos(start, addDays(parseDate(ph.end_date), 1)));
+  return e <= 0 || s >= 12 || e <= s ? null : { s, e };
+}
+
+function tlBar(start, ph) {
+  const r = span(start, ph);
+  if (!r) return '';
+  const st = STAGE_STYLE[ph.stage] || STAGE_STYLE.Planning;
+  const label = ph.label || (ph.stage === 'Ongoing' ? '' : ph.stage);
+  const tip = `${ph.stage}${ph.label ? ': ' + ph.label : ''} (${fmtRange(ph.start_date, ph.end_date)})`;
+  const narrow = r.e - r.s < 1.7;
+  const outside = narrow && label ? `<span class="bar-out-label" style="${r.e < 10.5 ? `left:calc(${pct(r.e)} + 8px)` : `right:calc(${pct(12 - r.s)} + 8px)`}">${esc(label)}</span>` : '';
+  return `<div class="gbar${ph.stage === 'Ongoing' ? ' gbar-ongoing' : ''}" style="left:${pct(r.s)};width:${pct(r.e - r.s)};background:${st.bg};color:${st.fg}" title="${esc(tip)}">${narrow ? '' : `<span>${esc(label)}</span>`}</div>${outside}`;
+}
+
+function tlMark(start, on, label, { open = '', kind = 'key', tentative = false, done = false } = {}) {
+  const pos = monthPos(start, parseDate(on));
+  if (pos < 0 || pos > 12) return '';
+  const text = `${label}, ${fmtDate(on, true)}${tentative ? ' (to confirm)' : ''}${done ? ' (done)' : ''}`;
+  return `<button type="button" class="gmark gmark-${kind}${tentative ? ' gmark-tbc' : ''}${done ? ' gmark-done' : ''}" style="left:${pct(pos)}" data-open="${esc(open)}" title="${esc(text)}" aria-label="${esc(text)}"></button>`;
+}
+
+function stageCounts() {
   const counts = Object.fromEntries(STAGES.map((s) => [s, 0]));
   for (const p of state.data.projects) {
-    if (!['active', 'pipeline'].includes(p.category) || p.is_placeholder) continue;
-    const s = currentStage(p.id);
-    if (s && phasesOf(p.id).some((ph) => ph.stage !== 'Ongoing' && parseDate(ph.start_date) <= today() && parseDate(ph.end_date) >= today())) counts[s]++;
+    if (!['active', 'pipeline'].includes(p.category) || p.is_placeholder || p.parent_id) continue;
+    const cur = phasesOf(p.id).filter((ph) => ph.stage !== 'Ongoing' && parseDate(ph.start_date) <= today() && parseDate(ph.end_date) >= today());
+    if (cur.length) counts[cur[cur.length - 1].stage]++;
   }
+  return counts;
+}
+
+export function timelineView() {
+  const start = rangeStart(ui.range);
+  const lead = ui.lead.toLowerCase();
+  const counts = childCounts();
+  const map = projectsById();
+  const sc = stageCounts();
   const groups = ['active', 'pipeline', 'standing'].map((cat) => {
     let rows = projectTree(cat);
     if (lead) {
       const keep = new Set();
-      const map = projectsById();
       for (const { p } of rows) if ((p.leads || '').toLowerCase().includes(lead)) { keep.add(p.id); let q = p; while (q.parent_id && map.get(q.parent_id)) { q = map.get(q.parent_id); keep.add(q.id); } }
       rows = rows.filter(({ p }) => keep.has(p.id));
     }
     const main = rows.filter(({ p, depth }) => depth === 0 && !p.is_placeholder).length;
-    const counts = childCounts();
+    const gFold = groupFolded(cat) && !lead;
     const visible = [];
-    let hideBelow = null;
-    for (const r of rows) {
-      if (hideBelow !== null && r.depth > hideBelow) continue;
-      hideBelow = null;
-      visible.push(r);
-      if ((counts.get(r.p.id) || 0) && isFolded(r.p.id, counts)) hideBelow = r.depth;
+    if (!gFold) {
+      let hideBelow = null;
+      for (const r of rows) {
+        if (hideBelow !== null && r.depth > hideBelow) continue;
+        hideBelow = null;
+        visible.push(r);
+        if ((counts.get(r.p.id) || 0) && isFolded(r.p.id, counts)) hideBelow = r.depth;
+      }
     }
-    return `<div class="tl-group"><div class="tl-group-head"><h3>${esc(CATEGORIES[cat].name)}</h3><span>${esc(CATEGORIES[cat].desc)} · ${main} item${main === 1 ? '' : 's'}</span>
-      ${isEditor() ? `<button type="button" class="link-btn" data-add="project:${cat}">+ Add</button>` : ''}</div>
-      ${visible.map(({ p, depth }) => tlRow(start, p, depth, counts)).join('') || '<div class="tl-empty">No items match.</div>'}</div>`;
+    const head = `<div class="tl-group-head"><button type="button" class="gfold" data-fold="group:${cat}" aria-expanded="${!gFold}"><svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" style="transform:rotate(${gFold ? 0 : 90}deg)"><path d="M9 6l6 6-6 6"/></svg><h3>${esc(CATEGORIES[cat].name)}</h3></button><span>${main} item${main === 1 ? '' : 's'}${gFold ? ' · folded' : ''}</span>
+      ${isEditor() && !gFold ? `<button type="button" class="link-btn" data-add="project:${cat}">+ Add</button>` : ''}</div>`;
+    if (gFold) return `<div class="tl-group">${head}</div>`;
+    const targets = new Set();
+    const lines = connectors(start, visible, targets);
+    return `<div class="tl-group">${head}<div class="tl-body">${lines}${visible.map(({ p, depth }) => tlRow(start, p, depth, counts, targets)).join('') || '<div class="tl-empty">No items match.</div>'}</div></div>`;
   }).join('');
-  const total = state.data.projects.filter((p) => p.category !== 'archived' && !p.is_placeholder && !p.parent_id).length;
   return `
-  <div class="stage-cards">${STAGES.map((s) => `<div class="stage-card"><span class="swatch-tall" style="background:${STAGE_STYLE[s].bg}"></span><div><b>${counts[s]}</b><span>${s === 'Delivery' ? 'Delivery (active now)' : s}</span></div></div>`).join('')}</div>
   <div class="two-col">
-    <section class="panel tl" aria-label="Timeline"><div class="tl-scroll"><div class="tl-inner">
-      ${monthHeader(start)}${groups}
-      <div class="legend"><b>Stage</b>${STAGES.map((s) => `<span><i class="sw" style="background:${STAGE_STYLE[s].bg}"></i>${s}</span>`).join('')}
-        <span><i class="sw sw-ongoing"></i>Ongoing (standing)</span><span><i class="dia"></i>Key date or event</span><span><i class="dia dia-dl"></i>Deadline</span><span><i class="tline"></i>Today, ${fmtDate(today())}</span></div>
-      <div class="legend"><b>Pillar</b>${Object.entries(PILLARS).map(([n, c]) => `<span><i class="pdot" style="background:${c}"></i>${n}</span>`).join('')}<span class="muted">${total} projects and programs · ${fmtDate(start, true)} to ${fmtDate(end, true)}</span></div>
-    </div></div></section>
+    <section class="panel tl" aria-label="Timeline">
+      <div class="tl-legend">
+        <span class="lg-group"><b>Stage</b>${STAGES.map((s) => `<span class="lg-chip" style="background:${STAGE_STYLE[s].bg};color:${STAGE_STYLE[s].fg}">${s} <em>${sc[s]}</em></span>`).join('')}</span>
+        <span class="lg-group"><b>Pillar</b>${Object.entries(PILLARS).map(([n, c]) => `<span class="lg-item"><i class="pdot" style="background:${c}"></i>${n}</span>`).join('')}</span>
+        <span class="lg-group"><span class="lg-item"><i class="gmark gmark-key lg-mark"></i>Key date</span><span class="lg-item"><i class="gmark gmark-event lg-mark"></i>Event</span><span class="lg-item"><i class="gmark gmark-deadline lg-mark"></i>Deadline</span><span class="lg-item"><i class="lg-link"></i>Related</span></span>
+      </div>
+      <div class="tl-scroll"><div class="tl-inner">${tlHeader(start)}${groups}</div></div>
+    </section>
     ${sideLists()}
   </div>`;
 }
 
-function tlRow(start, p, depth, counts = new Map()) {
+// Lines between rows: sub-project from its parent, and "depends on" links.
+function connectors(start, visible, targets = new Set()) {
+  const idx = new Map(visible.map(({ p }, i) => [p.id, i]));
+  const first = (id) => { const r = phasesOf(id).map((ph) => span(start, ph)).filter(Boolean); return r.length ? r[0] : null; };
+  const last = (id) => { const r = phasesOf(id).map((ph) => span(start, ph)).filter(Boolean); return r.length ? r[r.length - 1] : null; };
+  const X = (m) => (m / 12) * 1000;
+  const paths = [];
+  visible.forEach(({ p }, i) => {
+    const target = first(p.id);
+    if (!target) return;
+    const yC = i * ROW + BAR_Y + BAR_H / 2;
+    if (p.parent_id && idx.has(p.parent_id)) {
+      const pi = idx.get(p.parent_id);
+      const src = first(p.parent_id);
+      if (src) {
+        const x0 = X(src.s) + 6, x1 = X(target.s);
+        if (x1 > x0 + 4) { paths.push(`<path class="ln-tree" d="M${x0} ${pi * ROW + BAR_Y + BAR_H} V${yC} H${x1}"/>`); targets.add(p.id); }
+      }
+    }
+    for (const dep of p.depends_on || []) {
+      if (!idx.has(dep)) continue;
+      const src = last(dep);
+      if (!src) continue;
+      const di = idx.get(dep);
+      const yS = di * ROW + BAR_Y + BAR_H / 2;
+      const xE = X(src.e), xT = X(target.s);
+      const mid = Math.max(xE + 10, Math.min(xT - 10, xE + 10));
+      paths.push(`<path class="ln-dep" d="M${xE} ${yS} H${mid} V${yC} H${xT}"/>`);
+      targets.add(p.id);
+    }
+  });
+  if (!paths.length) return '';
+  return `<svg class="tl-lines" viewBox="0 0 1000 ${visible.length * ROW}" preserveAspectRatio="none" aria-hidden="true" style="height:${visible.length * ROW}px">${paths.join('')}</svg>`;
+}
+
+function tlRow(start, p, depth, counts, targets) {
   const n = counts.get(p.id) || 0;
   const folded = n > 0 && isFolded(p.id, counts);
-  let bars = phasesOf(p.id).map((ph) => barHtml(start, ph)).join('');
+  const phases = phasesOf(p.id);
+  let bars = phases.map((ph) => tlBar(start, ph)).join('');
   if (folded) {
-    // a thin strip showing when each folded sub-item happens
     const kids = state.data.projects.filter((k) => k.parent_id === p.id);
     bars += kids.flatMap((k) => phasesOf(k.id).map((ph) => {
-      const s = monthPos(start, parseDate(ph.start_date)), e = monthPos(start, addDays(parseDate(ph.end_date), 1));
-      if (e < 0 || s > 12) return '';
-      return `<span class="mini" style="left:${pct(s)};width:calc(${pct(e)} - ${pct(s)});background:${(STAGE_STYLE[ph.stage] || STAGE_STYLE.Planning).bg}" title="${esc(`${k.name}: ${fmtRange(ph.start_date, ph.end_date)}`)}"></span>`;
+      const r = span(start, ph);
+      return r ? `<span class="mini" style="left:${pct(r.s)};width:${pct(r.e - r.s)}" title="${esc(`${k.name}: ${fmtRange(ph.start_date, ph.end_date)}`)}"></span>` : '';
     })).join('');
   }
-  const fold = n ? `<button type="button" class="fold" data-fold="${p.id}" aria-expanded="${!folded}" aria-label="${folded ? 'Show' : 'Hide'} ${n} items under ${esc(p.name)}"><svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" style="transform:rotate(${folded ? 0 : 90}deg)"><path d="M9 6l6 6-6 6"/></svg><span>${n}</span></button>` : '';
-  const marks = datesOf(p.id).map((d) => markHtml(start, d.on_date, d.label, { open: `project:${p.id}`, kind: d.kind, tentative: d.tentative, done: d.done })).join('')
-    + eventsOf(p.id).filter((e) => e.start_date).map((e) => markHtml(start, e.start_date, e.name, { open: `event:${e.id}`, kind: 'event', tentative: e.tentative })).join('');
-  return `<div class="tl-row${p.is_placeholder ? ' is-ph' : ''}">
-    <div class="tl-name" style="padding-left:${16 + depth * 24}px">
-      <span class="tl-title">${pillarDot(p, depth)}<button type="button" class="name-link" data-open="project:${p.id}">${esc(p.name)}</button>${fold}</span>
-      <span class="tl-lead">${esc(p.leads || '')}${p.flag ? ` <span class="flag">${esc(p.flag)}</span>` : ''}${p.seeking_support ? ' <span class="flag flag-support">Seeking support</span>' : ''}</span>
+  const linked = targets.has(p.id);
+  const firstSpan = phases.map((ph) => span(start, ph)).find(Boolean);
+  const arrow = linked && firstSpan ? `<i class="arrow-in" style="left:${pct(firstSpan.s)}" aria-hidden="true"></i>` : '';
+  const marks = (folded ? [] : datesOf(p.id)).map((d) => tlMark(start, d.on_date, d.label, { open: `project:${p.id}`, kind: d.kind, tentative: d.tentative, done: d.done })).join('')
+    + eventsOf(p.id).filter((e) => e.start_date).map((e) => tlMark(start, e.start_date, e.name, { open: `event:${e.id}`, kind: 'event', tentative: e.tentative })).join('');
+  const fold = n ? `<button type="button" class="fold" data-fold="${p.id}" aria-expanded="${!folded}" aria-label="${folded ? 'Show' : 'Hide'} ${n} items under ${esc(p.name)}"><svg aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" style="transform:rotate(${folded ? 0 : 90}deg)"><path d="M9 6l6 6-6 6"/></svg>${n}</button>` : '';
+  const tip = [p.name, p.leads, p.flag && `Flag: ${p.flag}`, p.timeline_note].filter(Boolean).join(' · ');
+  return `<div class="g-row${p.is_placeholder ? ' is-ph' : ''}">
+    <div class="g-name" style="padding-left:${16 + depth * 20}px" title="${esc(tip)}">
+      <span class="g-title">${depth ? '' : pillarDot(p, 0)}<button type="button" class="name-link" data-open="project:${p.id}">${esc(p.name)}</button>${p.flag ? `<i class="flag-dot" title="${esc(p.flag)}" aria-label="Flag: ${esc(p.flag)}"></i>` : ''}${fold}</span>
+      <span class="g-lead">${esc(p.leads || '')}</span>
     </div>
-    <div class="tl-track">${todayLine(start)}${bars}${marks}${p.timeline_note ? `<span class="tl-note">${esc(p.timeline_note)}</span>` : ''}</div>
+    <div class="g-track">${todayLine(start)}${arrow}${bars}${marks}</div>
   </div>`;
 }
 

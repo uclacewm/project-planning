@@ -179,7 +179,8 @@ export function projectForm(id, defaults = {}) {
         { name: 'tentative', label: 'To confirm', type: 'checkbox' },
         { name: 'done', label: 'Done', type: 'checkbox' }
       ] },
-    { name: 'timeline_note', label: 'Note on timeline row', type: 'text', full: true, placeholder: 'e.g. Next conference Mar. 2028' },
+    { name: 'depends_on', label: 'Follows (draws a connecting line on the timeline)', type: 'checks', options: projectOptions((x) => x.id !== id && x.category !== 'archived' && !x.is_placeholder && !x.parent_id), help: 'Pick projects this one comes after or builds on.' },
+    { name: 'timeline_note', label: 'Note (shown when you hover over the project name)', type: 'text', full: true, placeholder: 'e.g. Next conference Mar. 2028' },
     { name: 'public_description', label: 'Description (could be shown publicly)', type: 'textarea', full: true },
     { name: 'team_notes', label: 'Team notes (internal)', type: 'textarea', rows: 4, full: true },
     { name: 'box_url', label: 'Box folder link', type: 'url', placeholder: 'https://uclahs.box.com/...' },
@@ -198,6 +199,7 @@ export function projectForm(id, defaults = {}) {
     onSave: async (v) => {
       const { phases: ph, dates: dt, ...row } = v;
       row.parent_id = row.parent_id || null;
+      row.depends_on = row.depends_on || [];
       row.sort_order = row.sort_order ?? 100;
       const saved = await save('projects', { ...p, ...row });
       await syncChildren('phases', 'project_id', saved.id, ph);

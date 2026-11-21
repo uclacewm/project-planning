@@ -9,7 +9,7 @@ export const STAGE_STYLE = {
   Planning: { bg: '#8BB8E8', fg: '#003B5C' },
   Delivery: { bg: '#2774AE', fg: '#FFFFFF' },
   'Wrap-up': { bg: '#003B5C', fg: '#FFFFFF' },
-  Ongoing: { bg: '#EFEDE5', fg: '#3F464B' }
+  Ongoing: { bg: '#E8EBEE', fg: '#3F464B' }
 };
 export const PILLARS = { Education: '#2774AE', Research: '#003B5C', Clinical: '#8BB8E8', Community: '#FFB81C', Global: '#00AEC7' };
 export const CATEGORIES = {

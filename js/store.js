@@ -1,6 +1,6 @@
 // Data layer: Supabase when signed in, or local sample data in demo mode.
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
-import { SUPABASE_URL, SUPABASE_ANON_KEY, BRAND_FILES, PEOPLE as FALLBACK_PEOPLE } from './config.js';
+import { SUPABASE_URL, SUPABASE_ANON_KEY, BRAND_FILES, PEOPLE as FALLBACK_PEOPLE, FACULTY as FALLBACK_FACULTY } from './config.js';
 import { uuid, debounce } from './util.js';
 
 export const TABLES = {
@@ -32,9 +32,11 @@ export function onChange(fn) { listeners.add(fn); return () => listeners.delete(
 const emit = debounce(() => listeners.forEach((fn) => fn()), 60);
 
 export const isEditor = () => state.me?.role === 'editor';
-export const peopleNames = () => {
-  const list = state.data.people.filter((p) => p.active !== false).map((p) => p.name);
-  return list.length ? [...new Set(list)].sort((a, b) => a.split(' ').slice(-1)[0].localeCompare(b.split(' ').slice(-1)[0])) : FALLBACK_PEOPLE;
+// team: 'Faculty' for the Lead filter; omit for everyone (owners of action items, etc.)
+export const peopleNames = (team) => {
+  const list = state.data.people.filter((p) => p.active !== false && (!team || p.team === team)).map((p) => p.name);
+  if (!list.length) return team === 'Faculty' ? FALLBACK_FACULTY : FALLBACK_PEOPLE;
+  return [...new Set(list)].sort((a, b) => a.split(' ').slice(-1)[0].localeCompare(b.split(' ').slice(-1)[0]));
 };
 
 // ---------------- Auth ----------------

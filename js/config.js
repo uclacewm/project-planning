@@ -20,3 +20,4 @@ export const BRAND_FILES = {
 // Short list used only in the sample-data preview. When signed in, the Lead and Owner lists come from the
 // planning_people table (the Center roster), which is visible to signed-in members only.
 export const PEOPLE = ['Yuchen Ling', 'Anna Fong', 'Annie Law', 'Ka-Kit Hui', 'Mary Fok', 'Weijun Zhang', 'Katie Hu', 'Sara Ptasnik', 'Irene Wang', 'Walter Tsang'];
+export const FACULTY = ['Ka-Kit Hui', 'Mary Fok', 'Weijun Zhang', 'Katie Hu', 'Sara Ptasnik', 'Irene Wang', 'Alan Chu', 'Grant Chu'];

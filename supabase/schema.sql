@@ -57,6 +57,7 @@ create table if not exists public.planning_projects (
   show_publicly boolean not null default false,
   seeking_support boolean not null default false,
   sort_order int not null default 100,
+  depends_on uuid[] not null default '{}',
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   updated_by text
