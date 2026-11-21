@@ -1,0 +1,4 @@
+# Real starting data (donor names, internal notes) stays out of the repository.
+supabase/seed.sql
+tools/
+.DS_Store
