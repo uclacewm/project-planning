@@ -5,8 +5,8 @@
   --ink: #222222; --muted: #4A5258; --muted-2: #656C71; --line: #C9CFD4; --bg: #F6F4EE; --band: #EFEDE5; --white: #FFFFFF;
   --danger: #A3271F;
   --f-body: 'Trade Gothic Next LT Pro', 'Helvetica Neue', Helvetica, Arial, sans-serif;
-  --f-cond: 'Trade Gothic Next LT Pro Condensed', 'Arial Narrow', 'Helvetica Neue', Arial, sans-serif;
-  --f-display: 'Balboa', 'Arial Narrow', 'Helvetica Neue', Arial, sans-serif;
+  --f-cond: 'Trade Gothic Next LT Pro Condensed', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  --f-display: 'Balboa', 'Helvetica Neue', Helvetica, Arial, sans-serif;
   --f-serif: 'P22 Mackinac Pro', Georgia, 'Times New Roman', serif;
 }
 * { box-sizing: border-box; }
