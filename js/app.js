@@ -134,8 +134,9 @@ app.addEventListener('focusout', () => setTimeout(() => {
 
 // ---------------- clicks ----------------
 app.addEventListener('click', async (e) => {
-  const t = e.target.closest('[data-tab], [data-open], [data-add], [data-set], [data-do], [data-calnav], [data-calday], [data-restore], [data-meetinggo]');
+  const t = e.target.closest('[data-tab], [data-open], [data-add], [data-set], [data-do], [data-calnav], [data-calday], [data-restore], [data-meetinggo], [data-fold]');
   if (!t) return;
+  if (t.dataset.fold) { V.toggleFold(t.dataset.fold); render(); return; }
   if (t.dataset.tab) { ui.tab = t.dataset.tab; history.replaceState(null, '', '#' + ui.tab); render(); window.scrollTo(0, 0); return; }
   if (t.dataset.set) { const [k, v] = t.dataset.set.split(':'); ui[k] = /^\d+$/.test(v) ? Number(v) : v; render(); return; }
   if (t.dataset.open) return openItem(t.dataset.open);

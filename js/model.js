@@ -117,6 +117,14 @@ export function upcoming(days = 30, from = today()) {
     const ev = d.event_id ? state.data.events.find((e) => e.id === d.event_id) : null;
     items.push({ date: on, what: d.label + (d.tentative ? ' (to confirm)' : ''), who: ev ? ev.name : map.get(d.project_id)?.name || '', kind: d.kind });
   }
+  // sub-items starting soon (e.g. the next ME-ME 207.01 student, a visiting rotator)
+  for (const ph of state.data.phases) {
+    const p = map.get(ph.project_id);
+    if (!p || !p.parent_id || p.is_placeholder || p.category === 'archived') continue;
+    const on = parseDate(ph.start_date);
+    if (on < from || on > to) continue;
+    items.push({ date: on, what: `${p.name} starts`, who: `${map.get(p.parent_id)?.name || ''}${ph.end_date ? ' · until ' + fmtDate(ph.end_date) : ''}`, kind: 'key' });
+  }
   for (const e of state.data.events) {
     if (!e.start_date) continue;
     const on = parseDate(e.start_date);

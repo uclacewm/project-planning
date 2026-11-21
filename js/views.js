@@ -10,8 +10,23 @@ import {
 export const ui = {
   tab: 'timeline', range: 'fiscal', lead: '', host: 'all', tag: '', calMonth: null, calMode: 'month', calDay: null,
   calShow: { meeting: true, event: true, outside: true, deadline: true, action: true },
-  actOwner: '', actStatus: 'open', dlDays: 30, meetingKey: null, topicFilter: 'all'
+  actOwner: '', actStatus: 'open', dlDays: 30, meetingKey: null, topicFilter: 'all',
+  flipped: loadFlipped() // projects whose fold state differs from the default
 };
+
+// Long sub-lists (5 or more items, e.g. ME-ME 207.01 students) start folded.
+export const FOLD_AT = 5;
+function loadFlipped() { try { return new Set(JSON.parse(localStorage.getItem('planning-flipped') || '[]')); } catch { return new Set(); } }
+export function toggleFold(id) {
+  if (ui.flipped.has(id)) ui.flipped.delete(id); else ui.flipped.add(id);
+  try { localStorage.setItem('planning-flipped', JSON.stringify([...ui.flipped])); } catch { /* storage unavailable */ }
+}
+function childCounts() {
+  const m = new Map();
+  for (const p of state.data.projects) if (p.parent_id) m.set(p.parent_id, (m.get(p.parent_id) || 0) + 1);
+  return m;
+}
+const isFolded = (id, counts) => ((counts.get(id) || 0) >= FOLD_AT) !== ui.flipped.has(id);
 
 const pct = (m) => `${(Math.max(0, Math.min(12, m)) / 12 * 100).toFixed(3)}%`;
 
@@ -86,9 +101,18 @@ export function timelineView() {
       rows = rows.filter(({ p }) => keep.has(p.id));
     }
     const main = rows.filter(({ p, depth }) => depth === 0 && !p.is_placeholder).length;
+    const counts = childCounts();
+    const visible = [];
+    let hideBelow = null;
+    for (const r of rows) {
+      if (hideBelow !== null && r.depth > hideBelow) continue;
+      hideBelow = null;
+      visible.push(r);
+      if ((counts.get(r.p.id) || 0) && isFolded(r.p.id, counts)) hideBelow = r.depth;
+    }
     return `<div class="tl-group"><div class="tl-group-head"><h3>${esc(CATEGORIES[cat].name)}</h3><span>${esc(CATEGORIES[cat].desc)} · ${main} item${main === 1 ? '' : 's'}</span>
       ${isEditor() ? `<button type="button" class="link-btn" data-add="project:${cat}">+ Add</button>` : ''}</div>
-      ${rows.map(({ p, depth }) => tlRow(start, p, depth)).join('') || '<div class="tl-empty">No items match.</div>'}</div>`;
+      ${visible.map(({ p, depth }) => tlRow(start, p, depth, counts)).join('') || '<div class="tl-empty">No items match.</div>'}</div>`;
   }).join('');
   const total = state.data.projects.filter((p) => p.category !== 'archived' && !p.is_placeholder && !p.parent_id).length;
   return `
@@ -104,13 +128,25 @@ export function timelineView() {
   </div>`;
 }
 
-function tlRow(start, p, depth) {
-  const bars = phasesOf(p.id).map((ph) => barHtml(start, ph)).join('');
+function tlRow(start, p, depth, counts = new Map()) {
+  const n = counts.get(p.id) || 0;
+  const folded = n > 0 && isFolded(p.id, counts);
+  let bars = phasesOf(p.id).map((ph) => barHtml(start, ph)).join('');
+  if (folded) {
+    // a thin strip showing when each folded sub-item happens
+    const kids = state.data.projects.filter((k) => k.parent_id === p.id);
+    bars += kids.flatMap((k) => phasesOf(k.id).map((ph) => {
+      const s = monthPos(start, parseDate(ph.start_date)), e = monthPos(start, addDays(parseDate(ph.end_date), 1));
+      if (e < 0 || s > 12) return '';
+      return `<span class="mini" style="left:${pct(s)};width:calc(${pct(e)} - ${pct(s)});background:${(STAGE_STYLE[ph.stage] || STAGE_STYLE.Planning).bg}" title="${esc(`${k.name}: ${fmtRange(ph.start_date, ph.end_date)}`)}"></span>`;
+    })).join('');
+  }
+  const fold = n ? `<button type="button" class="fold" data-fold="${p.id}" aria-expanded="${!folded}" aria-label="${folded ? 'Show' : 'Hide'} ${n} items under ${esc(p.name)}"><svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" style="transform:rotate(${folded ? 0 : 90}deg)"><path d="M9 6l6 6-6 6"/></svg><span>${n}</span></button>` : '';
   const marks = datesOf(p.id).map((d) => markHtml(start, d.on_date, d.label, { open: `project:${p.id}`, kind: d.kind, tentative: d.tentative, done: d.done })).join('')
     + eventsOf(p.id).filter((e) => e.start_date).map((e) => markHtml(start, e.start_date, e.name, { open: `event:${e.id}`, kind: 'event', tentative: e.tentative })).join('');
   return `<div class="tl-row${p.is_placeholder ? ' is-ph' : ''}">
     <div class="tl-name" style="padding-left:${16 + depth * 24}px">
-      <span class="tl-title">${pillarDot(p, depth)}<button type="button" class="name-link" data-open="project:${p.id}">${esc(p.name)}</button></span>
+      <span class="tl-title">${pillarDot(p, depth)}<button type="button" class="name-link" data-open="project:${p.id}">${esc(p.name)}</button>${fold}</span>
       <span class="tl-lead">${esc(p.leads || '')}${p.flag ? ` <span class="flag">${esc(p.flag)}</span>` : ''}${p.seeking_support ? ' <span class="flag flag-support">Seeking support</span>' : ''}</span>
     </div>
     <div class="tl-track">${todayLine(start)}${bars}${marks}${p.timeline_note ? `<span class="tl-note">${esc(p.timeline_note)}</span>` : ''}</div>

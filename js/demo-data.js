@@ -100,7 +100,7 @@ export const DEMO = {
    "public_description": null,
    "team_notes": null,
    "flag": null,
-   "timeline_note": "2-week break in March [dates to confirm]",
+   "timeline_note": "Break Mar. 8–19",
    "box_url": null,
    "qualtrics_url": null,
    "is_placeholder": false,
@@ -794,6 +794,50 @@ export const DEMO = {
    "seeking_support": false
   },
   {
+   "id": "d2e270c8-8106-543a-8d8f-d58ccd694866",
+   "name": "[Student name]",
+   "category": "active",
+   "pillar": null,
+   "leads": "Example · 3-week block",
+   "parent_id": "1b596769-eb10-59a4-a073-7ff0f8de0609",
+   "sort_order": 44,
+   "other_pillars": [],
+   "types": [],
+   "audiences": [],
+   "team": null,
+   "public_description": null,
+   "team_notes": null,
+   "flag": null,
+   "timeline_note": null,
+   "box_url": null,
+   "qualtrics_url": null,
+   "is_placeholder": true,
+   "show_publicly": false,
+   "seeking_support": false
+  },
+  {
+   "id": "4700fdfb-4941-5739-b315-1fad28dba95a",
+   "name": "[Student name]",
+   "category": "active",
+   "pillar": null,
+   "leads": "Example · 3-week block",
+   "parent_id": "1b596769-eb10-59a4-a073-7ff0f8de0609",
+   "sort_order": 45,
+   "other_pillars": [],
+   "types": [],
+   "audiences": [],
+   "team": null,
+   "public_description": null,
+   "team_notes": null,
+   "flag": null,
+   "timeline_note": null,
+   "box_url": null,
+   "qualtrics_url": null,
+   "is_placeholder": true,
+   "show_publicly": false,
+   "seeking_support": false
+  },
+  {
    "id": "ae67ec7a-5511-5668-91f9-858e6892834e",
    "name": "Implementing Music Therapy Program at CSC",
    "category": "active",
@@ -960,12 +1004,12 @@ export const DEMO = {
    "end_date": "2027-06-30"
   },
   {
-   "id": "a34ac408-04a5-5007-b3c7-02d5cb89cc23",
+   "id": "f898d174-7b6c-5686-8b70-6a754e696289",
    "project_id": "1b596769-eb10-59a4-a073-7ff0f8de0609",
    "stage": "Delivery",
    "label": "September to March",
-   "start_date": "2026-09-01",
-   "end_date": "2027-03-07"
+   "start_date": "2026-09-07",
+   "end_date": "2027-03-05"
   },
   {
    "id": "255bd715-b138-5e05-bdab-1a2f94e40725",
@@ -973,31 +1017,47 @@ export const DEMO = {
    "stage": "Delivery",
    "label": "March to June",
    "start_date": "2027-03-22",
-   "end_date": "2027-06-15"
+   "end_date": "2027-06-11"
   },
   {
-   "id": "2fdf202f-ff9f-51b0-9d19-f08467b74626",
+   "id": "20ab77dd-a775-5785-99f1-ebd9074f5cba",
    "project_id": "c8f7c78f-f71e-5af4-8cb5-aadde876f735",
    "stage": "Delivery",
    "label": null,
-   "start_date": "2026-11-02",
-   "end_date": "2026-11-22"
+   "start_date": "2026-09-07",
+   "end_date": "2026-09-25"
   },
   {
-   "id": "ac77707e-1efa-5e0e-a980-c52743745895",
+   "id": "a4fd1e3e-9c63-540e-af00-b0f3dbfbd43a",
    "project_id": "26a65ea2-6e09-5048-914b-8bebf6dea284",
-   "stage": "Planning",
+   "stage": "Delivery",
    "label": null,
-   "start_date": "2027-01-04",
-   "end_date": "2027-01-24"
+   "start_date": "2026-10-19",
+   "end_date": "2026-11-06"
   },
   {
-   "id": "ecb1bdd3-35ce-5cc6-9c4f-8e3174326ce0",
+   "id": "b18071bf-1813-5c3d-8204-c87fc33e5a94",
    "project_id": "9f6c7009-1987-5eb1-8060-55ac75ffe18a",
-   "stage": "Planning",
+   "stage": "Delivery",
    "label": null,
-   "start_date": "2027-02-01",
-   "end_date": "2027-02-21"
+   "start_date": "2026-11-30",
+   "end_date": "2026-12-18"
+  },
+  {
+   "id": "4f037572-c8cd-5e77-92b3-2ee18e0c2001",
+   "project_id": "d2e270c8-8106-543a-8d8f-d58ccd694866",
+   "stage": "Delivery",
+   "label": null,
+   "start_date": "2027-01-25",
+   "end_date": "2027-02-12"
+  },
+  {
+   "id": "5fdefcac-4944-5eff-92f0-a384cb214e75",
+   "project_id": "4700fdfb-4941-5739-b315-1fad28dba95a",
+   "stage": "Delivery",
+   "label": null,
+   "start_date": "2027-04-12",
+   "end_date": "2027-04-30"
   },
   {
    "id": "ea7e974d-8904-5520-b140-3bea4dd1c028",

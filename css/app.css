@@ -293,3 +293,9 @@ fieldset.rows { border-top: 1px solid var(--line); padding-top: 10px; }
   .top, .tabbar, .filters, .btn, .link-btn, .side { display: none !important; }
   body { background: #fff; } .panel { border: 0; }
 }
+
+/* folding long sub-lists */
+.fold { display: inline-flex; align-items: center; gap: 2px; min-width: 44px; min-height: 28px; margin-left: 4px; padding: 0 8px; border: 1px solid var(--line); border-radius: 14px; background: var(--white); color: var(--navy); font-family: var(--f-cond); font-weight: 700; font-size: 12px; cursor: pointer; flex: none; }
+.fold:hover { border-color: var(--blue); }
+.fold svg { transition: transform .15s; }
+.mini { position: absolute; bottom: 4px; height: 5px; border-right: 1px solid var(--white); z-index: 1; }
